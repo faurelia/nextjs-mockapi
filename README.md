@@ -1,36 +1,91 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Mock API Starter
 
-## Getting Started
+A lightweight Next.js mock API for frontend prototyping, demos, and local development. This project exposes a set of realistic REST endpoints backed by a local database so you can test client apps without needing a production backend.
 
-First, run the development server:
+## What it includes
+
+The app ships with mock data for common resource types:
+
+- `/api/users`
+- `/api/posts`
+- `/api/todos`
+- `/api/products`
+- `/api/movies`
+- `/api/authors`
+- `/api/books`
+
+Each collection supports standard CRUD-style patterns using Next.js route handlers.
+
+## Features
+
+- Fast local API for UI development
+- Structured mock data for multiple domains
+- REST endpoints with GET and POST support
+- seeded records for easy testing
+- input validation with Zod for safer request payloads
+- built with Next.js and Drizzle ORM
+
+## Getting started
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Start the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000 in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Seeding mock data
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+This project includes a seed script to populate the mock endpoints with sample records:
 
-## Learn More
+```bash
+npm run seed
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Example requests
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+List users:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+curl http://localhost:3000/api/users
+```
 
-## Deploy on Vercel
+Create a todo:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+curl -X POST http://localhost:3000/api/todos \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Ship mock API demo","completed":false}'
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Project scripts
+
+```bash
+npm run dev
+npm run build
+npm run start
+npm run seed
+npm run db:generate
+npm run db:migrate
+npm run db:push
+```
+
+## Tech stack
+
+- Next.js 16
+- React 19
+- Drizzle ORM
+- PostgreSQL / Neon-compatible database
+- TypeScript
+- Zod
+
+## Notes
+
+This project is intended as a mock backend for development and demos. It is not a production authentication or storage system, but it is useful for testing frontend flows, API contracts, and sample integrations.
