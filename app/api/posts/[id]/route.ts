@@ -1,57 +1,60 @@
+import { NextResponse } from "next/server";
+import { and, eq } from "drizzle-orm";
+import { updatePostSchema } from "@/lib/validations/post";
 import { db } from "@/lib/db";
 import { postsTable } from "@/lib/db/schema";
-import { apiHandler } from "@/lib/utils/api-handler";
-import { updatePostSchema } from "@/lib/validations/post";
-import { paramsProps } from "@/types/params";
-import { eq } from "drizzle-orm";
-import { NextResponse } from "next/server";
+import { api } from "@/lib/api/handler";
+import { Errors } from "@/lib/api/errors";
 
-export async function GET(request: Request, { params }: paramsProps) {
-  return apiHandler(async () => {
-    const { id } = await params;
+export const GET = api<{ id: string }, "optional">(
+  async ({ params }) => {
+    const { id } = params;
 
     const post = await db.query.postsTable.findFirst({
-      with: { user: true },
+      with: {
+        user: {
+          columns: {
+            id: true,
+            name: true,
+            image: true,
+          },
+        },
+      },
       where: { id: +id },
     });
 
-    if (!post) {
-      return NextResponse.json({ error: "Post not found" }, { status: 404 });
-    }
+    if (!post) throw Errors.notFound("Post");
 
-    return NextResponse.json(post);
-  });
-}
+    return NextResponse.json({ data: post });
+  },
+  { auth: "optional" },
+);
 
-export async function PATCH(request: Request, { params }: paramsProps) {
-  return apiHandler(async () => {
-    const { id } = await params;
+export const PATCH = api<{ id: string }>(async ({ req, params, user }) => {
+  const { id } = params;
 
-    const data = updatePostSchema.parse(await request.json());
+  const data = updatePostSchema.parse(await req.json());
 
-    const [post] = await db
-      .update(postsTable)
-      .set(data)
-      .where(eq(postsTable.id, +id))
-      .returning();
+  const [post] = await db
+    .update(postsTable)
+    .set(data)
+    .where(and(eq(postsTable.id, +id), eq(postsTable.userId, user.id)))
+    .returning();
 
-    return NextResponse.json(post);
-  });
-}
+  if (!post) throw Errors.notFound("Post");
 
-export async function DELETE(request: Request, { params }: paramsProps) {
-  return apiHandler(async () => {
-    const { id } = await params;
+  return NextResponse.json({ data: post });
+});
 
-    const [post] = await db
-      .delete(postsTable)
-      .where(eq(postsTable.id, +id))
-      .returning();
+export const DELETE = api<{ id: string }>(async ({ params, user }) => {
+  const { id } = params;
 
-    if (!post) {
-      return NextResponse.json({ error: "Post not found" }, { status: 404 });
-    }
+  const [post] = await db
+    .delete(postsTable)
+    .where(and(eq(postsTable.id, +id), eq(postsTable.userId, user.id)))
+    .returning();
 
-    return new NextResponse(null, { status: 204 });
-  });
-}
+  if (!post) throw Errors.notFound("Post");
+
+  return new NextResponse(null, { status: 204 });
+});

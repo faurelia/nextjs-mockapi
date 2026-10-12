@@ -1,62 +1,50 @@
 import { db } from "@/lib/db";
 import { usersTable } from "@/lib/db/schema";
-import { apiHandler } from "@/lib/utils/api-handler";
 import { updateUserSchema } from "@/lib/validations/user";
-import { paramsProps } from "@/types/params";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { api } from "@/lib/api/handler";
+import { Errors } from "@/lib/api/errors";
 
-export async function GET(request: Request, { params }: paramsProps) {
-  return apiHandler(async () => {
-    const { id } = await params;
+export const GET = api<{ id: string }, "optional">(
+  async ({ params }) => {
+    const { id } = params;
 
     const [user] = await db
-      .select()
+      .select({
+        id: usersTable.id,
+        name: usersTable.name,
+        image: usersTable.image,
+        email: usersTable.email,
+      })
       .from(usersTable)
-      .where(eq(usersTable.id, +id))
+      .where(eq(usersTable.id, id))
       .limit(1);
 
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
+    if (!user) throw Errors.notFound("User");
 
-    return NextResponse.json(user);
-  });
-}
+    return NextResponse.json({ data: user });
+  },
+  { auth: "optional" },
+);
 
-export async function PATCH(request: Request, { params }: paramsProps) {
-  return apiHandler(async () => {
-    const { id } = await params;
+export const PATCH = api<{ id: string }>(async ({ req, params }) => {
+  const { id } = params;
 
-    const data = updateUserSchema.parse(await request.json());
+  const data = updateUserSchema.parse(await req.json());
 
-    const [user] = await db
-      .update(usersTable)
-      .set(data)
-      .where(eq(usersTable.id, +id))
-      .returning();
+  const [user] = await db
+    .update(usersTable)
+    .set(data)
+    .where(eq(usersTable.id, id))
+    .returning({
+      id: usersTable.id,
+      name: usersTable.name,
+      image: usersTable.image,
+      email: usersTable.email,
+    });
 
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
+  if (!user) throw Errors.notFound("User");
 
-    return NextResponse.json(user);
-  });
-}
-
-export async function DELETE(_request: Request, { params }: paramsProps) {
-  return apiHandler(async () => {
-    const { id } = await params;
-
-    const [user] = await db
-      .delete(usersTable)
-      .where(eq(usersTable.id, +id))
-      .returning();
-
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    return new NextResponse(null, { status: 204 });
-  });
-}
+  return NextResponse.json({ data: user });
+});

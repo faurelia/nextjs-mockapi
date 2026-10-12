@@ -1,14 +1,14 @@
 import { db } from "@/lib/db";
 import { productsTable } from "@/lib/db/schema";
-import { apiHandler } from "@/lib/utils/api-handler";
 import { updateProductSchema } from "@/lib/validations/product";
-import { paramsProps } from "@/types/params";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { api } from "@/lib/api/handler";
+import { Errors } from "@/lib/api/errors";
 
-export async function GET(request: Request, { params }: paramsProps) {
-  return apiHandler(async () => {
-    const { id } = await params;
+export const GET = api<{ id: string }, "optional">(
+  async ({ params }) => {
+    const { id } = params;
 
     const [product] = await db
       .select()
@@ -16,46 +16,37 @@ export async function GET(request: Request, { params }: paramsProps) {
       .where(eq(productsTable.id, +id))
       .limit(1);
 
-    if (!product) {
-      return NextResponse.json({ error: "Product not found" }, { status: 404 });
-    }
+    if (!product) throw Errors.notFound("Product");
 
-    return NextResponse.json(product);
-  });
-}
+    return NextResponse.json({ data: product });
+  },
+  { auth: "optional" },
+);
 
-export async function PATCH(request: Request, { params }: paramsProps) {
-  return apiHandler(async () => {
-    const { id } = await params;
-    const data = updateProductSchema.parse(await request.json());
+export const PATCH = api<{ id: string }>(async ({ req, params }) => {
+  const { id } = params;
+  const data = updateProductSchema.parse(await req.json());
 
-    const [product] = await db
-      .update(productsTable)
-      .set(data)
-      .where(eq(productsTable.id, +id))
-      .returning();
+  const [product] = await db
+    .update(productsTable)
+    .set(data)
+    .where(eq(productsTable.id, +id))
+    .returning();
 
-    if (!product) {
-      return NextResponse.json({ error: "Product not found" }, { status: 404 });
-    }
+  if (!product) throw Errors.notFound("Product");
 
-    return NextResponse.json(product);
-  });
-}
+  return NextResponse.json({ data: product });
+});
 
-export async function DELETE(request: Request, { params }: paramsProps) {
-  return apiHandler(async () => {
-    const { id } = await params;
+export const DELETE = api<{ id: string }>(async ({ params }) => {
+  const { id } = params;
 
-    const [product] = await db
-      .delete(productsTable)
-      .where(eq(productsTable.id, +id))
-      .returning();
+  const [product] = await db
+    .delete(productsTable)
+    .where(eq(productsTable.id, +id))
+    .returning();
 
-    if (!product) {
-      return NextResponse.json({ error: "Product not found" }, { status: 404 });
-    }
+  if (!product) throw Errors.notFound("Product");
 
-    return new NextResponse(null, { status: 204 });
-  });
-}
+  return new NextResponse(null, { status: 204 });
+});

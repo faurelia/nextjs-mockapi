@@ -1,27 +1,32 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { todosTable } from "@/lib/db/schema";
-import { apiHandler } from "@/lib/utils/api-handler";
 import { createTodoSchema } from "@/lib/validations/todo";
+import { api } from "@/lib/api/handler";
+import { AppError } from "@/lib/api/errors";
+import { eq } from "drizzle-orm";
 
-export async function GET() {
-  return apiHandler(async () => {
-    const todos = await db.select().from(todosTable);
+export const GET = api(async ({ user }) => {
+  const todos = await db
+    .select()
+    .from(todosTable)
+    .where(eq(todosTable.userId, user.id));
+  return NextResponse.json({ data: todos });
+});
 
-    return NextResponse.json(todos);
-  });
-}
+export const POST = api(async ({ req, user }) => {
+  const data = createTodoSchema.parse(await req.json());
 
-export async function POST(request: Request) {
-  return apiHandler(async () => {
-    const data = createTodoSchema.parse(await request.json());
+  const [todo] = await db
+    .insert(todosTable)
+    .values({
+      ...data,
+      userId: user.id,
+    })
+    .returning();
 
-    const [todo] = await db.insert(todosTable).values(data).returning();
+  if (!todo)
+    throw new AppError(500, "TODO_CREATE_FAILED", "Failed to create todo");
 
-    if (!todo) {
-      return NextResponse.json("Failed to add todo", { status: 400 });
-    }
-
-    return NextResponse.json(todo, { status: 201 });
-  });
-}
+  return NextResponse.json({ data: todo }, { status: 201 });
+});

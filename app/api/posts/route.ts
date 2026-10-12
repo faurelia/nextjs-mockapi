@@ -1,31 +1,40 @@
 import { db } from "@/lib/db";
 import { postsTable } from "@/lib/db/schema";
-import { apiHandler } from "@/lib/utils/api-handler";
 import { createPostSchema } from "@/lib/validations/post";
 import { NextResponse } from "next/server";
+import { api } from "@/lib/api/handler";
+import { AppError } from "@/lib/api/errors";
 
-export async function GET() {
-  return apiHandler(async () => {
-    const posts = await db.query.postsTable.findMany({
-      with: { user: true },
-    });
-
-    return NextResponse.json(posts);
+export const GET = api(async ({ user }) => {
+  const posts = await db.query.postsTable.findMany({
+    with: {
+      user: {
+        columns: {
+          id: true,
+          name: true,
+          image: true,
+        },
+      },
+    },
+    where: { userId: user.id },
   });
-}
 
-export async function POST(request: Request) {
-  return apiHandler(async () => {
-    const data = createPostSchema.parse(await request.json());
+  return NextResponse.json({ data: posts });
+});
 
-    const [post] = await db.insert(postsTable).values(data).returning();
+export const POST = api(async ({ req, user }) => {
+  const data = createPostSchema.parse(await req.json());
 
-    if (!post)
-      return NextResponse.json(
-        { error: "Failed to add post" },
-        { status: 400 },
-      );
+  const [post] = await db
+    .insert(postsTable)
+    .values({
+      ...data,
+      userId: user.id,
+    })
+    .returning();
 
-    return NextResponse.json(post, { status: 201 });
-  });
-}
+  if (!post)
+    throw new AppError(500, "POST_CREATE_FAILED", "Failed to create post");
+
+  return NextResponse.json({ data: post }, { status: 201 });
+});

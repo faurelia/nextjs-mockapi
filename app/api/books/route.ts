@@ -1,32 +1,28 @@
 import { db } from "@/lib/db";
 import { booksTable } from "@/lib/db/schema";
-import { apiHandler } from "@/lib/utils/api-handler";
 import { createBookSchema } from "@/lib/validations/book";
 import { NextResponse } from "next/server";
+import { api } from "@/lib/api/handler";
+import { AppError } from "@/lib/api/errors";
 
-export async function GET() {
-  return apiHandler(async () => {
-    const books = await db.query.booksTable.findMany({
+export const GET = api(
+  async () => {
+    const data = await db.query.booksTable.findMany({
       with: { author: true },
     });
 
-    return NextResponse.json(books);
-  });
-}
+    return NextResponse.json({ data });
+  },
+  { auth: "none" },
+);
 
-export async function POST(request: Request) {
-  return apiHandler(async () => {
-    const data = createBookSchema.parse(await request.json());
+export const POST = api(async ({ req }) => {
+  const data = createBookSchema.parse(await req.json());
 
-    const [book] = await db.insert(booksTable).values(data).returning();
+  const [book] = await db.insert(booksTable).values(data).returning();
 
-    if (!book) {
-      return NextResponse.json(
-        { error: "Unable to create book" },
-        { status: 400 },
-      );
-    }
+  if (!book)
+    throw new AppError(500, "BOOK_CREATE_FAILED", "Failed to create book");
 
-    return NextResponse.json(book, { status: 201 });
-  });
-}
+  return NextResponse.json({ data: book }, { status: 201 });
+});

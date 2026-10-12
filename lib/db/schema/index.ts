@@ -5,3 +5,4 @@ export * from "./products";
 export * from "./movies";
 export * from "./authors";
 export * from "./books";
+export * from "./auth";

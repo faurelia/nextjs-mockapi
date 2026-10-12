@@ -6,7 +6,7 @@ export const postsTable = pgTable("posts", (table) => ({
   title: table.varchar({ length: 255 }).notNull(),
   body: table.text().notNull(),
   userId: table
-    .integer()
+    .text()
     .notNull()
     .references(() => usersTable.id, { onDelete: "cascade" }),
 }));

@@ -1,60 +1,52 @@
-import { db } from "@/lib/db";
-import { authorsTable } from "@/lib/db/schema";
-import { apiHandler } from "@/lib/utils/api-handler";
-import { createAuthorSchema } from "@/lib/validations/author";
-import { paramsProps } from "@/types/params";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { authorsTable } from "@/lib/db/schema";
+import { createAuthorSchema } from "@/lib/validations/author";
+import { api } from "@/lib/api/handler";
+import { Errors } from "@/lib/api/errors";
 
-export async function GET(request: Request, { params }: paramsProps) {
-  return apiHandler(async () => {
-    const { id } = await params;
+export const GET = api<{ id: string }, "optional">(
+  async ({ params }) => {
+    const { id } = params;
 
     const author = await db.query.authorsTable.findFirst({
-      with: { books: true },
       where: { id: +id },
     });
 
-    if (!author) {
-      return NextResponse.json({ error: "Author not found" }, { status: 404 });
-    }
+    if (!author) throw Errors.notFound("Author");
 
-    return NextResponse.json(author);
-  });
-}
+    return NextResponse.json({ data: author });
+  },
+  {
+    auth: "optional",
+  },
+);
 
-export async function PATCH(request: Request, { params }: paramsProps) {
-  return apiHandler(async () => {
-    const { id } = await params;
-    const data = createAuthorSchema.parse(await request.json());
+export const PATCH = api<{ id: string }>(async ({ req, params }) => {
+  const { id } = params;
+  const data = createAuthorSchema.parse(await req.json());
 
-    const [author] = await db
-      .update(authorsTable)
-      .set(data)
-      .where(eq(authorsTable.id, +id))
-      .returning();
+  const [author] = await db
+    .update(authorsTable)
+    .set(data)
+    .where(eq(authorsTable.id, +id))
+    .returning();
 
-    if (!author) {
-      return NextResponse.json({ error: "Author not found" }, { status: 404 });
-    }
+  if (!author) throw Errors.notFound("Author");
 
-    return NextResponse.json(author);
-  });
-}
+  return NextResponse.json({ data: author });
+});
 
-export async function DELETE(_request: Request, { params }: paramsProps) {
-  return apiHandler(async () => {
-    const { id } = await params;
+export const DELETE = api<{ id: string }>(async ({ params }) => {
+  const { id } = params;
 
-    const [author] = await db
-      .delete(authorsTable)
-      .where(eq(authorsTable.id, +id))
-      .returning();
+  const [author] = await db
+    .delete(authorsTable)
+    .where(eq(authorsTable.id, +id))
+    .returning();
 
-    if (!author) {
-      return NextResponse.json({ error: "Author not found" }, { status: 404 });
-    }
+  if (!author) throw Errors.notFound("Author");
 
-    return new NextResponse(null, { status: 204 });
-  });
-}
+  return new NextResponse(null, { status: 204 });
+});

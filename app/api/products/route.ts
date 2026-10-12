@@ -1,29 +1,28 @@
 import { db } from "@/lib/db";
 import { productsTable } from "@/lib/db/schema";
-import { apiHandler } from "@/lib/utils/api-handler";
 import { createProductSchema } from "@/lib/validations/product";
 import { NextResponse } from "next/server";
+import { api } from "@/lib/api/handler";
+import { AppError } from "@/lib/api/errors";
 
-export async function GET() {
-  return apiHandler(async () => {
-    const products = await db.select().from(productsTable);
-    return NextResponse.json(products);
-  });
-}
+export const GET = api(
+  async () => {
+    const data = await db.select().from(productsTable);
+    return NextResponse.json({ data });
+  },
+  { auth: "none" },
+);
 
-export async function POST(request: Request) {
-  return apiHandler(async () => {
-    const data = createProductSchema.parse(await request.json());
+export const POST = api(async ({ req }) => {
+  const data = createProductSchema.parse(await req.json());
+  const [product] = await db.insert(productsTable).values(data).returning();
 
-    const [product] = await db.insert(productsTable).values(data).returning();
+  if (!product)
+    throw new AppError(
+      500,
+      "PRODUCT_CREATE_FAILED",
+      "Failed to create product",
+    );
 
-    if (!product) {
-      return NextResponse.json(
-        { error: "Failed to add product" },
-        { status: 400 },
-      );
-    }
-
-    return NextResponse.json(product, { status: 201 });
-  });
-}
+  return NextResponse.json({ data: product }, { status: 201 });
+});

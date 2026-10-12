@@ -1,32 +1,27 @@
 import { db } from "@/lib/db";
 import { authorsTable } from "@/lib/db/schema";
-import { apiHandler } from "@/lib/utils/api-handler";
 import { createAuthorSchema } from "@/lib/validations/author";
 import { NextResponse } from "next/server";
+import { api } from "@/lib/api/handler";
+import { AppError } from "@/lib/api/errors";
 
-export async function GET() {
-  return apiHandler(async () => {
-    const authors = await db.query.authorsTable.findMany({
-      with: { books: true },
-    });
+export const GET = api(
+  async () => {
+    const data = await db.query.authorsTable.findMany();
 
-    return NextResponse.json(authors);
-  });
-}
+    return NextResponse.json({ data });
+  },
+  { auth: "none" },
+);
 
-export async function POST(request: Request) {
-  return apiHandler(async () => {
-    const data = createAuthorSchema.parse(await request.json());
+export const POST = api(async ({ req }) => {
+  const data = createAuthorSchema.parse(await req.json());
 
-    const [author] = await db.insert(authorsTable).values(data).returning();
+  const [author] = await db.insert(authorsTable).values(data).returning();
 
-    if (!author) {
-      return NextResponse.json(
-        { error: "Failed to add author" },
-        { status: 400 },
-      );
-    }
+  if (!author) {
+    throw new AppError(500, "AUTHOR_CREATE_FAILED", "Failed to create author");
+  }
 
-    return NextResponse.json(author, { status: 201 });
-  });
-}
+  return NextResponse.json({ data: author }, { status: 201 });
+});
