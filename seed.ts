@@ -1,13 +1,25 @@
+import { db } from "@/lib/db";
+import {
+  authorsTable,
+  booksTable,
+  moviesTable,
+  postsTable,
+  productsTable,
+  todosTable,
+  usersTable,
+} from "@/lib/db/schema";
+
 type AuthorSeed = {
   id: string;
   name: string;
 };
 
 type BookSeed = {
+  id: string;
   title: string;
   description: string;
   authorId: string;
-  genre: string;
+  genre?: string;
 };
 
 type UserSeed = {
@@ -27,6 +39,7 @@ type TodoSeed = {
   id: string;
   text: string;
   completed: boolean;
+  userId: string;
 };
 
 type ProductSeed = {
@@ -40,11 +53,6 @@ type MovieSeed = {
   name: string;
   year: number;
 };
-
-const API_BASE_URL = process.env.API_BASE_URL ?? "http://localhost:3000/api";
-const MAX_ATTEMPTS = 3;
-const RETRY_DELAY_MS = 500;
-const RETRYABLE_STATUS_CODES = new Set([408, 429, 500, 502, 503, 504]);
 
 const data = {
   authors: [
@@ -66,6 +74,7 @@ const data = {
   ] as AuthorSeed[],
   books: [
     {
+      id: "b1",
       title: "Sapiens: A Brief History of Humankind",
       description:
         "A sweeping narrative of human history from the Stone Age to the age of artificial intelligence.",
@@ -73,6 +82,7 @@ const data = {
       genre: "history",
     },
     {
+      id: "b2",
       title: "Homo Deus: A Brief History of Tomorrow",
       description:
         "Explores humanity's future quests for immortality, happiness and divinity.",
@@ -80,6 +90,7 @@ const data = {
       genre: "history",
     },
     {
+      id: "b3",
       title: "21 Lessons for the 21st Century",
       description:
         "A concise guide to the most pressing challenges facing the world today.",
@@ -87,6 +98,7 @@ const data = {
       genre: "history",
     },
     {
+      id: "b4",
       title: "Clean Code: A Handbook of Agile Software Craftsmanship",
       description:
         "Practical advice for writing readable, maintainable and elegant code.",
@@ -94,6 +106,7 @@ const data = {
       genre: "software engineering",
     },
     {
+      id: "b5",
       title: "The Clean Coder: A Code of Conduct for Professional Programmers",
       description:
         "How to behave professionally in a demanding software industry.",
@@ -101,6 +114,7 @@ const data = {
       genre: "software engineering",
     },
     {
+      id: "b6",
       title:
         "Clean Architecture: A Craftsman's Guide to Software Structure and Design",
       description:
@@ -109,6 +123,7 @@ const data = {
       genre: "software engineering",
     },
     {
+      id: "b7",
       title: "Atomic Habits: An Easy & Proven Way to Build Good Habits",
       description:
         "Tiny changes that deliver remarkable results through habit stacking.",
@@ -116,6 +131,7 @@ const data = {
       genre: "self help",
     },
     {
+      id: "b8",
       title: "The Pragmatic Programmer: Your Journey to Mastery",
       description:
         "Timeless tips and tricks for becoming a more effective developer.",
@@ -123,6 +139,7 @@ const data = {
       genre: "software engineering",
     },
     {
+      id: "b9",
       title: "Pride and Prejudice",
       description:
         "Wit and social commentary as Elizabeth Bennet clashes with Mr. Darcy.",
@@ -130,6 +147,7 @@ const data = {
       genre: "classics",
     },
     {
+      id: "b10",
       title: "Sense and Sensibility",
       description:
         "Two sisters navigate love and loss with reason versus emotion.",
@@ -137,6 +155,7 @@ const data = {
       genre: "classics",
     },
     {
+      id: "b11",
       title: "Emma",
       description:
         "A matchmaking heroine learns hard lessons about meddling in others' hearts.",
@@ -144,6 +163,7 @@ const data = {
       genre: "classics",
     },
     {
+      id: "b12",
       title: "Crime and Punishment",
       description:
         "A destitute student commits murder and is consumed by guilt and paranoia.",
@@ -151,6 +171,7 @@ const data = {
       genre: "classics",
     },
     {
+      id: "b13",
       title: "The Brothers Karamazov",
       description:
         "A philosophical family drama exploring faith, doubt and free will.",
@@ -158,6 +179,7 @@ const data = {
       genre: "classics",
     },
     {
+      id: "b14",
       title: "Notes from Underground",
       description:
         "A bitter recluse rants against rationalism and society in this existential classic.",
@@ -165,6 +187,7 @@ const data = {
       genre: "classics",
     },
     {
+      id: "b15",
       title: "Refactoring: Improving the Design of Existing Code",
       description:
         "A catalog of techniques to restructure code without changing its behavior.",
@@ -172,6 +195,7 @@ const data = {
       genre: "software engineering",
     },
     {
+      id: "b16",
       title: "Domain-Specific Languages",
       description:
         "Guidance on building expressive DSLs tailored to specific problem domains.",
@@ -179,6 +203,7 @@ const data = {
       genre: "software engineering",
     },
     {
+      id: "b17",
       title:
         "UML Distilled: A Brief Guide to the Standard Object Modeling Language",
       description: "A concise introduction to the UML modeling language.",
@@ -186,6 +211,7 @@ const data = {
       genre: "software engineering",
     },
     {
+      id: "b18",
       title: "Just Mercy: A Story of Justice and Redemption",
       description:
         "A lawyer's account of fighting wrongful convictions on death row.",
@@ -193,6 +219,7 @@ const data = {
       genre: "history",
     },
     {
+      id: "b19",
       title: "Stoner",
       description:
         "The quiet, overlooked life of a university professor finds unexpected depth.",
@@ -200,6 +227,7 @@ const data = {
       genre: "fiction",
     },
     {
+      id: "b20",
       title: "Ego Is the Enemy",
       description:
         "Historical figures illustrate how ego sabotages ambition and success.",
@@ -207,6 +235,7 @@ const data = {
       genre: "self help",
     },
     {
+      id: "b21",
       title: "The Obstacle Is the Way",
       description:
         "Turning adversity into advantage through the ancient Stoic mindset.",
@@ -214,12 +243,14 @@ const data = {
       genre: "self help",
     },
     {
+      id: "b22",
       title: "Meditations",
       description: "Private notes of a Roman emperor on resilience and virtue.",
       authorId: "a8",
       genre: "philosophy",
     },
     {
+      id: "b23",
       title: "1984",
       description:
         "A totalitarian surveillance state crushes truth and individuality.",
@@ -227,6 +258,7 @@ const data = {
       genre: "classics",
     },
     {
+      id: "b24",
       title: "Animal Farm",
       description:
         "An allegorical fable of revolution betrayed by power-hungry pigs.",
@@ -234,12 +266,14 @@ const data = {
       genre: "classics",
     },
     {
+      id: "b25",
       title: "Down and Out in Paris and London",
       description: "A firsthand account of poverty in two European capitals.",
       authorId: "a9",
       genre: "memoir",
     },
     {
+      id: "b26",
       title: "Capital: Critique of Political Economy",
       description:
         "A foundational analysis of capitalism, labor and surplus value.",
@@ -247,6 +281,7 @@ const data = {
       genre: "history",
     },
     {
+      id: "b27",
       title: "The Communist Manifesto",
       description:
         "A political pamphlet outlining the class struggle and communist ideals.",
@@ -254,6 +289,7 @@ const data = {
       genre: "history",
     },
     {
+      id: "b28",
       title: "Think and Grow Rich",
       description:
         "Thirteen principles for turning desire into tangible achievement.",
@@ -261,6 +297,7 @@ const data = {
       genre: "self help",
     },
     {
+      id: "b29",
       title: "Moby-Dick",
       description:
         "Captain Ahab's obsessive hunt for a white whale across the seas.",
@@ -268,6 +305,7 @@ const data = {
       genre: "classics",
     },
     {
+      id: "b30",
       title:
         "The Lean Startup: How Constant Innovation Creates Radically Successful Businesses",
       description:
@@ -276,6 +314,7 @@ const data = {
       genre: "business",
     },
     {
+      id: "b31",
       title: "The Subtle Art of Not Giving a F*ck",
       description:
         "A counterintuitive approach to living a good life by choosing your struggles.",
@@ -323,11 +362,31 @@ const data = {
     },
   ] as PostSeed[],
   todos: [
-    { id: "t1", text: "Review onboarding copy", completed: false },
-    { id: "t2", text: "Clean up API error messages", completed: true },
-    { id: "t3", text: "Schedule design review", completed: false },
-    { id: "t4", text: "Publish release notes", completed: true },
-    { id: "t5", text: "Update billing reminders", completed: false },
+    {
+      id: "t1",
+      text: "Review onboarding copy",
+      completed: false,
+      userId: "u1",
+    },
+    {
+      id: "t2",
+      text: "Clean up API error messages",
+      completed: true,
+      userId: "u2",
+    },
+    {
+      id: "t3",
+      text: "Schedule design review",
+      completed: false,
+      userId: "u3",
+    },
+    { id: "t4", text: "Publish release notes", completed: true, userId: "u4" },
+    {
+      id: "t5",
+      text: "Update billing reminders",
+      completed: false,
+      userId: "u5",
+    },
   ] as TodoSeed[],
   products: [
     { id: "pr1", name: "Wireless Headphones", price: 129.99 },
@@ -345,106 +404,28 @@ const data = {
   ] as MovieSeed[],
 };
 
-const getJson = async <T>(url: string): Promise<T> => {
-  const response = await fetch(url);
-
-  if (!response.ok) {
-    throw new Error(`Request failed (${response.status}) for ${url}`);
-  }
-
-  return (await response.json()) as T;
-};
-
-const delay = (milliseconds: number) =>
-  new Promise((resolve) => setTimeout(resolve, milliseconds));
-
-const postJsonWithRetry = async <T>(
-  url: string,
-  payload: unknown,
-  description: string,
-  findExisting: () => Promise<T | undefined>,
-): Promise<T> => {
-  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    let response: Response | undefined;
-    let requestError: unknown;
-
-    try {
-      response = await fetch(url, {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-    } catch (error) {
-      requestError = error;
-    }
-
-    if (response?.ok) {
-      return (await response.json()) as T;
-    }
-
-    const failure = response
-      ? `${response.status} ${await response.text()}`
-      : requestError instanceof Error
-        ? requestError.message
-        : String(requestError);
-    const shouldRetry =
-      !response || RETRYABLE_STATUS_CODES.has(response.status);
-
-    if (!shouldRetry) {
-      throw new Error(`Failed to ${description}: ${failure}`);
-    }
-
-    // A POST may have succeeded even if its response was lost; check before retrying.
-    const existing = await findExisting();
-    if (existing) {
-      return existing;
-    }
-
-    if (attempt === MAX_ATTEMPTS) {
-      throw new Error(
-        `Failed to ${description} after ${MAX_ATTEMPTS} attempts: ${failure}`,
-      );
-    }
-
-    const waitMs = RETRY_DELAY_MS * 2 ** (attempt - 1);
-    console.warn(
-      `Could not ${description} (${failure}); retrying in ${waitMs}ms (attempt ${attempt + 1}/${MAX_ATTEMPTS}).`,
-    );
-    await delay(waitMs);
-  }
-
-  throw new Error(`Failed to ${description}.`);
-};
-
 const findAuthorByName = async (name: string) => {
-  const authors = await getJson<Array<{ id: number; name: string }>>(
-    `${API_BASE_URL}/authors`,
-  );
+  const authors = await db.query.authorsTable.findMany();
   return authors.find((author) => author.name === name);
 };
 
 const createAuthor = async (author: { name: string }) => {
-  const createdAuthor = await postJsonWithRetry<{ id: number; name: string }>(
-    `${API_BASE_URL}/authors`,
-    author,
-    `create author "${author.name}"`,
-    () => findAuthorByName(author.name),
-  );
+  const [createdAuthor] = await db
+    .insert(authorsTable)
+    .values({
+      name: author.name,
+    })
+    .returning();
 
-  if (typeof createdAuthor.id !== "number") {
-    throw new Error(`Author "${author.name}" response did not include a numeric ID.`);
+  if (!createdAuthor) {
+    throw new Error(`Author "${author.name}" was not created.`);
   }
 
   return createdAuthor;
 };
 
 const findBookByTitle = async (title: string) => {
-  const books = await getJson<Array<{ id: number; title: string }>>(
-    `${API_BASE_URL}/books`,
-  );
+  const books = await db.query.booksTable.findMany();
   return books.find((book) => book.title === title);
 };
 
@@ -452,97 +433,152 @@ const createBook = async (payload: {
   title: string;
   description: string;
   authorId: number;
-}) =>
-  postJsonWithRetry<{ id: number; title: string }>(
-    `${API_BASE_URL}/books`,
-    payload,
-    `create book "${payload.title}"`,
-    () => findBookByTitle(payload.title),
-  );
+}) => {
+  const [book] = await db
+    .insert(booksTable)
+    .values({
+      title: payload.title,
+      description: payload.description,
+      authorId: payload.authorId,
+    })
+    .returning();
+
+  if (!book) {
+    throw new Error(`Book "${payload.title}" was not created.`);
+  }
+
+  return book;
+};
 
 const findUserByEmail = async (email: string) => {
-  const users = await getJson<Array<{ id: number; email: string }>>(
-    `${API_BASE_URL}/users`,
-  );
+  const users = await db.query.usersTable.findMany();
   return users.find((user) => user.email === email);
 };
 
-const createUser = async (user: { name: string; email: string }) =>
-  postJsonWithRetry<{ id: number; email: string }>(
-    `${API_BASE_URL}/users`,
-    user,
-    `create user "${user.email}"`,
-    () => findUserByEmail(user.email),
-  );
+const createUser = async (user: {
+  id: string;
+  name: string;
+  email: string;
+}) => {
+  const [createdUser] = await db
+    .insert(usersTable)
+    .values({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      emailVerified: false,
+    })
+    .returning();
+
+  if (!createdUser) {
+    throw new Error(`User "${user.email}" was not created.`);
+  }
+
+  return createdUser;
+};
 
 const findPostByTitle = async (title: string) => {
-  const posts = await getJson<Array<{ id: number; title: string }>>(
-    `${API_BASE_URL}/posts`,
-  );
+  const posts = await db.query.postsTable.findMany();
   return posts.find((post) => post.title === title);
 };
 
 const createPost = async (payload: {
   title: string;
   body: string;
-  userId: number;
-}) =>
-  postJsonWithRetry<{ id: number; title: string }>(
-    `${API_BASE_URL}/posts`,
-    payload,
-    `create post "${payload.title}"`,
-    () => findPostByTitle(payload.title),
-  );
+  userId: string;
+}) => {
+  const [post] = await db
+    .insert(postsTable)
+    .values({
+      title: payload.title,
+      body: payload.body,
+      userId: payload.userId,
+    })
+    .returning();
+
+  if (!post) {
+    throw new Error(`Post "${payload.title}" was not created.`);
+  }
+
+  return post;
+};
 
 const findTodoByText = async (text: string) => {
-  const todos = await getJson<Array<{ id: number; text: string }>>(
-    `${API_BASE_URL}/todos`,
-  );
+  const todos = await db.select().from(todosTable);
   return todos.find((todo) => todo.text === text);
 };
 
-const createTodo = async (payload: { text: string; completed: boolean }) =>
-  postJsonWithRetry<{ id: number; text: string }>(
-    `${API_BASE_URL}/todos`,
-    payload,
-    `create todo "${payload.text}"`,
-    () => findTodoByText(payload.text),
-  );
+const createTodo = async (payload: {
+  text: string;
+  completed: boolean;
+  userId: string;
+}) => {
+  const [todo] = await db
+    .insert(todosTable)
+    .values({
+      text: payload.text,
+      completed: payload.completed,
+      userId: payload.userId,
+    })
+    .returning();
+
+  if (!todo) {
+    throw new Error(`Todo "${payload.text}" was not created.`);
+  }
+
+  return todo;
+};
 
 const findProductByName = async (name: string) => {
-  const products = await getJson<Array<{ id: number; name: string }>>(
-    `${API_BASE_URL}/products`,
-  );
+  const products = await db.select().from(productsTable);
   return products.find((product) => product.name === name);
 };
 
-const createProduct = async (payload: { name: string; price: number | string }) =>
-  postJsonWithRetry<{ id: number; name: string }>(
-    `${API_BASE_URL}/products`,
-    payload,
-    `create product "${payload.name}"`,
-    () => findProductByName(payload.name),
-  );
+const createProduct = async (payload: {
+  name: string;
+  price: number | string;
+}) => {
+  const [product] = await db
+    .insert(productsTable)
+    .values({
+      name: payload.name,
+      price:
+        typeof payload.price === "string"
+          ? payload.price
+          : payload.price.toFixed(2),
+    })
+    .returning();
+
+  if (!product) {
+    throw new Error(`Product "${payload.name}" was not created.`);
+  }
+
+  return product;
+};
 
 const findMovieByName = async (name: string) => {
-  const movies = await getJson<Array<{ id: number; name: string }>>(
-    `${API_BASE_URL}/movies`,
-  );
+  const movies = await db.select().from(moviesTable);
   return movies.find((movie) => movie.name === name);
 };
 
-const createMovie = async (payload: { name: string; year: number }) =>
-  postJsonWithRetry<{ id: number; name: string }>(
-    `${API_BASE_URL}/movies`,
-    payload,
-    `create movie "${payload.name}"`,
-    () => findMovieByName(payload.name),
-  );
+const createMovie = async (payload: { name: string; year: number }) => {
+  const [movie] = await db
+    .insert(moviesTable)
+    .values({
+      name: payload.name,
+      year: payload.year,
+    })
+    .returning();
+
+  if (!movie) {
+    throw new Error(`Movie "${payload.name}" was not created.`);
+  }
+
+  return movie;
+};
 
 const seedAuthors = async () => {
-  const existingAuthors = await getJson<Array<{ id: number; name: string }>>(
-    `${API_BASE_URL}/authors`,
-  );
+  const existingAuthors = await db.query.authorsTable.findMany();
   const existingAuthorMap = new Map(
     existingAuthors.map((author) => [author.name, author.id]),
   );
@@ -565,14 +601,12 @@ const seedAuthors = async () => {
 };
 
 const seedBooks = async (authorIdsByLegacyId: Map<string, number>) => {
-  const existingBooks = await getJson<Array<{ id: number; title: string }>>(
-    `${API_BASE_URL}/books`,
-  );
+  const existingBooks = await db.query.booksTable.findMany();
   const existingBookTitles = new Set(existingBooks.map((book) => book.title));
 
-  const bookPromises = data.books.map(async (book) => {
+  for (const book of data.books) {
     if (existingBookTitles.has(book.title)) {
-      return;
+      continue;
     }
 
     const authorId = authorIdsByLegacyId.get(book.authorId);
@@ -588,36 +622,33 @@ const seedBooks = async (authorIdsByLegacyId: Map<string, number>) => {
       description: book.description,
       authorId,
     });
-  });
-
-  await Promise.all(bookPromises);
+  }
 };
 
 const seedUsers = async () => {
-  const existingUsers = await getJson<Array<{ id: number; email: string }>>(
-    `${API_BASE_URL}/users`,
-  );
+  const existingUsers = await db.query.usersTable.findMany();
   const existingUserEmails = new Set(existingUsers.map((user) => user.email));
 
-  const userIdsByLegacyId = new Map<string, number>();
+  const userIdsByLegacyId = new Map<string, string>();
 
   for (const user of data.users) {
     if (existingUserEmails.has(user.email)) {
-      const existingUser = existingUsers.find((entry) => entry.email === user.email);
+      const existingUser = existingUsers.find(
+        (entry) => entry.email === user.email,
+      );
+
       if (existingUser) {
         userIdsByLegacyId.set(user.id, existingUser.id);
       }
+
       continue;
     }
 
     const createdUser = await createUser({
+      id: user.id,
       name: user.name,
       email: user.email,
     });
-
-    if (typeof createdUser.id !== "number") {
-      throw new Error(`User "${user.email}" response did not include a numeric ID.`);
-    }
 
     userIdsByLegacyId.set(user.id, createdUser.id);
   }
@@ -625,15 +656,13 @@ const seedUsers = async () => {
   return userIdsByLegacyId;
 };
 
-const seedPosts = async (userIdsByLegacyId: Map<string, number>) => {
-  const existingPosts = await getJson<Array<{ id: number; title: string }>>(
-    `${API_BASE_URL}/posts`,
-  );
+const seedPosts = async (userIdsByLegacyId: Map<string, string>) => {
+  const existingPosts = await db.query.postsTable.findMany();
   const existingPostTitles = new Set(existingPosts.map((post) => post.title));
 
-  const postPromises = data.posts.map(async (post) => {
+  for (const post of data.posts) {
     if (existingPostTitles.has(post.title)) {
-      return;
+      continue;
     }
 
     const userId = userIdsByLegacyId.get(post.userId);
@@ -649,80 +678,79 @@ const seedPosts = async (userIdsByLegacyId: Map<string, number>) => {
       body: post.body,
       userId,
     });
-  });
-
-  await Promise.all(postPromises);
+  }
 };
 
-const seedTodos = async () => {
-  const existingTodos = await getJson<Array<{ id: number; text: string }>>(
-    `${API_BASE_URL}/todos`,
-  );
+const seedTodos = async (userIdsByLegacyId: Map<string, string>) => {
+  const existingTodos = await db.select().from(todosTable);
   const existingTodoTexts = new Set(existingTodos.map((todo) => todo.text));
 
-  const todoPromises = data.todos.map(async (todo) => {
+  for (const todo of data.todos) {
     if (existingTodoTexts.has(todo.text)) {
-      return;
+      continue;
+    }
+
+    const userId = userIdsByLegacyId.get(todo.userId);
+
+    if (!userId) {
+      throw new Error(
+        `Missing user mapping for todo "${todo.text}" (legacy ID: ${todo.userId})`,
+      );
     }
 
     await createTodo({
       text: todo.text,
       completed: todo.completed,
+      userId,
     });
-  });
-
-  await Promise.all(todoPromises);
+  }
 };
 
 const seedProducts = async () => {
-  const existingProducts = await getJson<Array<{ id: number; name: string }>>(
-    `${API_BASE_URL}/products`,
+  const existingProducts = await db.select().from(productsTable);
+  const existingProductNames = new Set(
+    existingProducts.map((product) => product.name),
   );
-  const existingProductNames = new Set(existingProducts.map((product) => product.name));
 
-  const productPromises = data.products.map(async (product) => {
+  for (const product of data.products) {
     if (existingProductNames.has(product.name)) {
-      return;
+      continue;
     }
 
     await createProduct({
       name: product.name,
       price: product.price,
     });
-  });
-
-  await Promise.all(productPromises);
+  }
 };
 
 const seedMovies = async () => {
-  const existingMovies = await getJson<Array<{ id: number; name: string }>>(
-    `${API_BASE_URL}/movies`,
-  );
+  const existingMovies = await db.select().from(moviesTable);
   const existingMovieNames = new Set(existingMovies.map((movie) => movie.name));
 
-  const moviePromises = data.movies.map(async (movie) => {
+  for (const movie of data.movies) {
     if (existingMovieNames.has(movie.name)) {
-      return;
+      continue;
     }
 
     await createMovie({
       name: movie.name,
       year: movie.year,
     });
-  });
-
-  await Promise.all(moviePromises);
+  }
 };
 
 const main = async () => {
-  console.log("Seeding authors, books, users, posts, todos, products, and movies...");
+  console.log(
+    "Seeding authors, books, users, posts, todos, products, and movies...",
+  );
 
   const authorIdsByLegacyId = await seedAuthors();
   await seedBooks(authorIdsByLegacyId);
 
   const userIdsByLegacyId = await seedUsers();
   await seedPosts(userIdsByLegacyId);
-  await seedTodos();
+  await seedTodos(userIdsByLegacyId);
   await seedProducts();
   await seedMovies();
 
